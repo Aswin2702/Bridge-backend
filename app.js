@@ -6,6 +6,9 @@ const User = require('./models/userModel');
 const userRouter = require('./routes/userRoute');
 const startupRoute = require('./routes/startupRoute');
 const campaignRoute = require('./routes/campaignRoute');
+const vcRoute = require('./routes/vcRoute');
+const chatRoute = require('./routes/chatRoute');
+
 const authController = require('./controllers/authController');
 const globalErrorHandler = require('./controllers/errorController');
 
@@ -49,6 +52,8 @@ app.get(
 app.use('/api/users', userRouter);
 app.use('/api/startup', startupRoute);
 app.use('/api/campaign', campaignRoute);
+app.use('/api/vc', vcRoute);
+app.use('/api/chat', chatRoute);
 app.use(globalErrorHandler);
 
 module.exports = app;

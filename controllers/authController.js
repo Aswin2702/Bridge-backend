@@ -1,11 +1,11 @@
 const crypto = require('crypto');
 const { promisify } = require('util');
-const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const { sendEmail, generateVerificationToken } = require('./../utils/email');
+const axios = require('axios');
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -14,7 +14,7 @@ const signToken = (id) => {
 };
 
 // Creating a token
-const createSendToken = (user, statusCode, res, message = 'Login Sucess') => {
+const createSendToken = (user, statusCode, res, message = 'Login Success') => {
   const token = signToken(user._id);
   const cookieOptions = {
     expires: new Date(
@@ -33,18 +33,6 @@ const createSendToken = (user, statusCode, res, message = 'Login Sucess') => {
     message
   });
 };
-
-// Get user id form jwt
-// exports.getUserId = catchAsync(async (req, res, next) => {
-//   const token = req.header('Authorization').replace('Bearer ', '');
-//   if (!token) {
-//     new AppError('User not found.', 401);
-//   }
-//   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//   req.userId = decoded.id;
-//   next();
-// });
-
 exports.verifyEmail = catchAsync(async (req, res) => {
   const { token } = req.query;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -52,9 +40,9 @@ exports.verifyEmail = catchAsync(async (req, res) => {
   const { email } = decoded;
   let user = await User.findOneAndUpdate({ email }, { emailVerified: true });
   if (!user) {
-    next(new AppError('User Not Found.', 404));
+    return next(new AppError('User Not Found.', 404));
   }
-  const message = 'Email Verification Successfull.';
+  const message = 'Email Verification Successful.';
   createSendToken(user, 200, res, message);
 });
 
@@ -80,10 +68,12 @@ exports.signup = catchAsync(async (req, res, next) => {
     password
   });
 
-  res.status(200).json({ message: 'Verification email sent.' });
+  res
+    .status(200)
+    .json({ status: 'success', message: 'Verification email sent.' });
 });
 
-// Signin
+// SignIn
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -155,6 +145,10 @@ exports.protect = catchAsync(async (req, res, next) => {
         401
       )
     );
+  }
+
+  if (!currentUser.emailVerified) {
+    return next(new AppError('Please verify your email.', 401));
   }
 
   if (currentUser.changedPasswordAfter(decoded.iat)) {

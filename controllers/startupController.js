@@ -1,9 +1,23 @@
 const mongoose = require('mongoose');
-const User = require('./../models/userModel');
-const Startup = require('./../models/startupSchema');
 const catchAsync = require('../utils/catchAsync');
+const Startup = require('./../models/startupSchema');
 const AppError = require('../utils/appError');
 const VC = require('../models/vcSchema');
+
+// Get Details
+exports.getStartupDetails = catchAsync(async (req, res, next) => {
+  const { id } = req.user;
+  const startup = await Startup.findOne({ user: id });
+
+  if (!startup) {
+    return next(new AppError('No Details found match this id.', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: startup
+  });
+});
 
 // Add Startup Details
 exports.addStartupDetails = catchAsync(async (req, res, next) => {
@@ -85,7 +99,7 @@ exports.updateStartupDetails = catchAsync(async (req, res, next) => {
   const { id, role } = req.user;
   const startupDetails = req.body;
   if (!startupDetails) {
-    next(new AppError('Please enter valid details for update.', 400));
+    return next(new AppError('Please enter valid details for update.', 400));
   }
 
   const updateCompanyDetails = await Startup.findOneAndUpdate(
@@ -106,7 +120,7 @@ exports.getViewCount = catchAsync(async (req, res, next) => {
   const startup = await Startup.findOne({ user: id });
 
   if (!startup) {
-    next(new AppError('Startup not found', 400));
+    return next(new AppError('Startup not found', 400));
   }
 
   startDate = new Date(startDate);
@@ -114,7 +128,7 @@ exports.getViewCount = catchAsync(async (req, res, next) => {
   console.log(startDate, endDate);
 
   if (!startDate || !endDate) {
-    next(new AppError('Please provide the duration'));
+    return next(new AppError('Please provide the duration'));
   }
 
   const investorSet = new Set();
@@ -141,19 +155,19 @@ exports.responseRequest = catchAsync(async (req, res, next) => {
   const startup = await Startup.findById(startupId);
 
   if (!startup) {
-    next(new AppError('Startup not found'));
+    return next(new AppError('Startup not found'));
   }
 
   const campaign = startup.campaigns.id(campaignId);
 
   if (!campaign) {
-    next(new AppError('Campaign not found'));
+    return next(new AppError('Campaign not found'));
   }
 
   const request = campaign.requests.id(requestId);
 
   if (!request) {
-    next(new AppError('Request not found'));
+    return next(new AppError('Request not found'));
   }
 
   request.status = response;
